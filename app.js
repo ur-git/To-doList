@@ -5,6 +5,7 @@ const ejs = require("ejs");
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
+app.use(express.static("public"));
 
 let itemArray = ["Buy food", "Make food", "Eat food"];
 
@@ -22,7 +23,7 @@ app.get("/", function (req, res) {
 });
 
 app.post("/", function (req, res) {
-  var item = req.body.newList;
+  let item = req.body.newList;
   itemArray.push(item);
   res.redirect("/");
 });
