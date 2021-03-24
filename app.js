@@ -11,54 +11,67 @@ app.use(express.static("public"));
 //database
 //connect database
 mongoose.connect("mongodb://localhost:27017/todolistdb", {
-  useUnifiedTopology: true,
+  useNewUrlParser: true,
 });
 
 //database schema
-const itemsSchema = {
+const itemSchema = new mongoose.Schema({
   name: String,
-};
+});
 
 //mongoose model
-const Item = mongoose.model("Item", itemsSchema);
+const Item = mongoose.model("Item", itemSchema);
 
-//db documents
-const item1 = new Item({
-  name: "welcome to todo list",
+const first = new Item({
+  name: "welcome to your todo list!",
 });
-const item2 = new Item({
-  name: "Hit the + button to add new line",
+const second = new Item({
+  name: "hit + to add new item !",
 });
-const item3 = new Item({
-  name: "<--- Hit this to delete item",
+const third = new Item({
+  name: "new",
 });
-
-const defaultArray = [item1, item2, item3];
-
-//insert items
-Item.insertMany(defaultArray, function (err) {
-  if (err) {
-    console.log("err");
-  } else {
-    console.log("successfully saved to database");
-  }
-});
+const defaultItems = [first, second, third];
 
 //root route
 app.get("/", function (req, res) {
-  res.render("list", { kindOfDay: "Today", newListItem: items });
+  Item.find({}, function (err, foundItems) {
+    if (foundItems.length === 0) {
+      //insert default items
+      Item.insertMany(defaultItems, function (err) {
+        if (err) {
+          console.log("err");
+        } else {
+          console.log("successfully saved to database");
+        }
+      });
+      res.redirect("/");
+    } else {
+      res.render("list", { kindOfDay: "Today", newListItem: foundItems });
+    }
+  });
 });
 
 app.post("/", function (req, res) {
-  let item = req.body.newList;
+  const itemName = req.body.newList;
 
-  if (req.body.List === "Work") {
-    workArray.push(item);
-    res.redirect("/work");
-  } else {
-    itemArray.push(item);
-    res.redirect("/");
-  }
+  const item = new Item({
+    name: itemName,
+  });
+
+  item.save();
+  res.redirect("/");
+});
+
+app.post("/delete", function (req, res) {
+  const checkedItemId = req.body.checkbox;
+
+  Item.findByIdAndRemove(checkedItemId, function (err) {
+    if (!err) {
+      console.log("successfully deleted checked item");
+      res.redirect("/");
+    }
+  });
 });
 
 //work route
@@ -66,7 +79,9 @@ app.get("/work", function (req, res) {
   res.render("list", { kindOfDay: "Work List", newListItem: workArray });
 });
 
-app.post("/work", function (req, res) {});
+app.post("/about", function (req, res) {
+  res.render("about");
+});
 
 app.listen(3000, function () {
   console.log("Server is running at port 3000");
