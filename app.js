@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const _ = require("lodash");
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -14,7 +15,7 @@ mongoose.connect("mongodb://localhost:27017/todolistdb", {
   useNewUrlParser: true,
 });
 
-//database schema
+//Items schema
 const itemSchema = new mongoose.Schema({
   name: String,
 });
@@ -33,6 +34,13 @@ const third = new Item({
 });
 const defaultItems = [first, second, third];
 
+//List schema
+const listSchema = new mongoose.Schema({
+  name: String,
+  items: [itemSchema],
+});
+const List = mongoose.model("List", listSchema);
+
 //root route
 app.get("/", function (req, res) {
   Item.find({}, function (err, foundItems) {
@@ -48,6 +56,31 @@ app.get("/", function (req, res) {
       res.redirect("/");
     } else {
       res.render("list", { kindOfDay: "Today", newListItem: foundItems });
+    }
+  });
+});
+
+//custom route
+app.get("/:customListName", function (req, res) {
+  const customListName = req.params.customListName;
+
+  List.findOne({ name: customListName }, function (err, foundList) {
+    if (!err) {
+      if (!foundList) {
+        // create a new list
+        const list = new List({
+          name: customListName,
+          items: defaultItems,
+        });
+        list.save();
+        res.redirect("/" + customListName);
+      } else {
+        // show existing list
+        res.render("list", {
+          kindOfDay: foundList.name,
+          newListItem: foundList.items,
+        });
+      }
     }
   });
 });
@@ -72,11 +105,6 @@ app.post("/delete", function (req, res) {
       res.redirect("/");
     }
   });
-});
-
-//work route
-app.get("/work", function (req, res) {
-  res.render("list", { kindOfDay: "Work List", newListItem: workArray });
 });
 
 app.post("/about", function (req, res) {
